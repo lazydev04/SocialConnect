@@ -1,0 +1,13 @@
+﻿diff --git a/node_modules/react-native-reanimated/android/build.gradle b/node_modules/react-native-reanimated/android/build.gradle
+index abc123..def456 100644
+--- a/node_modules/react-native-reanimated/android/build.gradle
++++ b/node_modules/react-native-reanimated/android/build.gradle
+@@ -370,7 +370,7 @@ afterEvaluate {
+ def detectReactNativeVersion() {
+   def reactNativeVersion = "unknown"
+   try {
+-    def packageJson = file("${project(':app').projectDir.nodeModulesDir}/react-native/package.json")
++    def packageJson = file("${project(':app').projectDir}/../node_modules/react-native/package.json")
+     def packageJsonContents = packageJson.text
+     def json = new JsonSlurper().parseText(packageJsonContents)
+     reactNativeVersion = json.version

@@ -1,31 +1,62 @@
-// App.js (or wherever your root navigator is)
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { AuthProvider } from './src/context/AuthContext.js';
-import { PostsProvider } from './src/context/PostsContext';
-import MainTab from './src/navigation/MainTab';
-import AuthStack from './src/navigation/AuthStack'; // your existing auth stack
-import { auth } from './src/firebase';
+import React, {useEffect} from 'react';
+import {NavigationContainer} from '@react-navigation/native';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {StatusBar, StyleSheet} from 'react-native';
+import messaging from '@react-native-firebase/messaging';
 
-export default function App() {
-  const [initializing, setInitializing] = React.useState(true);
-  const [user, setUser] = React.useState(null);
+import {AuthProvider} from './src/context/AuthContext';
+import {AppProvider} from './src/context/PostContext';
+import AppNavigator from './src/navigation/AppNavigator';
+import {colors} from './src/constants/theme';
 
-  React.useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged((u) => {
-      setUser(u);
-      if (initializing) setInitializing(false);
+const App = () => {
+  useEffect(() => {
+    // Request notification permissions
+    const requestPermission = async () => {
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      if (enabled) {
+        console.log('Authorization status:', authStatus);
+      }
+    };
+
+    requestPermission();
+
+    // Handle foreground messages
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      console.log('A new FCM message arrived!', JSON.stringify(remoteMessage));
     });
-    return unsubscribe;
-  }, [initializing]);
 
-  if (initializing) return null;
+    return unsubscribe;
+  }, []);
 
   return (
-    <AuthProvider>
-      <PostsProvider>
-        <NavigationContainer>{user ? <MainTab /> : <AuthStack />}</NavigationContainer>
-      </PostsProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={styles.container}>
+      <SafeAreaProvider>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor={colors.background}
+        />
+        <NavigationContainer>
+          <AuthProvider>
+            <AppProvider>
+              <AppNavigator />
+            </AppProvider>
+          </AuthProvider>
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
-}
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
+
+export default App;

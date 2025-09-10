@@ -1,62 +1,169 @@
-// src/screens/LoginScreen.js
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React from 'react';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  KeyboardAvoidingView, 
+  Platform 
+} from 'react-native';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
-import FormInput from '../components/FormInput';
-import { auth } from '../firebase';
+import { useAuth } from '../context/AuthContext';
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string().email('Invalid email').required('Required'),
-  password: Yup.string().min(6,'Password too short').required('Required'),
+  password: Yup.string().min(6, 'Too Short!').required('Required'),
 });
 
-export default function LoginScreen({ navigation }) {
-  const [loading, setLoading] = useState(false);
+const LoginScreen = ({ navigation }) => {
+  const { login } = useAuth();
 
-  const handleLogin = async (values) => {
-    setLoading(true);
+  const handleLogin = async (values, { setSubmitting, setErrors }) => {
     try {
-      await auth().signInWithEmailAndPassword(values.email.trim(), values.password);
-      // onAuthStateChanged in App.js will pick up user
-    } catch (err) {
-      Alert.alert('Login error', err.message);
-    } finally { setLoading(false); }
+      await login(values.email, values.password);
+    } catch (error) {
+      setErrors({ general: error.message });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome back</Text>
-      <Formik initialValues={{ email: '', password: '' }} validationSchema={LoginSchema} onSubmit={handleLogin}>
-        {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-          <>
-            <FormInput label="Email" autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" onChangeText={handleChange('email')} onBlur={handleBlur('email')} value={values.email} error={touched.email && errors.email} />
-            <FormInput label="Password" placeholder="********" secureTextEntry onChangeText={handleChange('password')} onBlur={handleBlur('password')} value={values.password} error={touched.password && errors.password} />
-            <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
-              <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
-            </TouchableOpacity>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <View style={styles.inner}>
+        <Text style={styles.title}>SocialConnect</Text>
+        
+        <Formik
+          initialValues={{ email: '', password: '' }}
+          validationSchema={LoginSchema}
+          onSubmit={handleLogin}
+        >
+          {({ handleChange, handleBlur, handleSubmit, values, errors, touched, isSubmitting }) => (
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                onChangeText={handleChange('email')}
+                onBlur={handleBlur('email')}
+                value={values.email}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              {touched.email && errors.email && (
+                <Text style={styles.error}>{errors.email}</Text>
+              )}
 
-            <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-              <Text style={styles.link}>Forgot password?</Text>
-            </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                onChangeText={handleChange('password')}
+                onBlur={handleBlur('password')}
+                value={values.password}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+              {touched.password && errors.password && (
+                <Text style={styles.error}>{errors.password}</Text>
+              )}
 
-            <View style={{flexDirection:'row', marginTop:16, justifyContent:'center'}}>
-              <Text>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                <Text style={{color:'#007AFF'}}> Sign up</Text>
+              {errors.general && (
+                <Text style={styles.error}>{errors.general}</Text>
+              )}
+
+              <TouchableOpacity 
+                style={[styles.button, isSubmitting && styles.buttonDisabled]} 
+                onPress={handleSubmit}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.buttonText}>
+                  {isSubmitting ? 'Logging in...' : 'Login'}
+                </Text>
               </TouchableOpacity>
+
+              <View style={styles.links}>
+                <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+                  <Text style={styles.link}>Don't have an account? Sign up</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                  <Text style={styles.link}>Forgot Password?</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </>
-        )}
-      </Formik>
-    </View>
+          )}
+        </Formik>
+      </View>
+    </KeyboardAvoidingView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex:1, padding:20, justifyContent:'center' },
-  title: { fontSize:28, fontWeight:'700', marginBottom:20 },
-  button: { marginTop:12, backgroundColor:'#007AFF', padding:14, borderRadius:8, alignItems:'center' },
-  buttonText: { color:'#fff', fontWeight:'600' },
-  link: { color:'#007AFF', marginTop:10, textAlign:'center' }
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  inner: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 40,
+    color: '#333',
+  },
+  form: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  input: {
+    height: 50,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    marginBottom: 15,
+    padding: 15,
+    borderRadius: 5,
+  },
+  error: {
+    color: 'red',
+    marginBottom: 10,
+  },
+  button: {
+    backgroundColor: '#1e90ff',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  links: {
+    alignItems: 'center',
+  },
+  link: {
+    color: '#1e90ff',
+    marginBottom: 10,
+  },
 });
+
+export default LoginScreen;

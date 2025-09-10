@@ -71,6 +71,7 @@ def enableProguardInReleaseBuilds = false
  * give correct results when using with locales other than en-US. Note that
  * this variant is about 6MiB larger per architecture than default.
  */
+
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
 android {
@@ -110,13 +111,30 @@ android {
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
-    implementation("com.facebook.react:react-android")
-    implementation 'com.google.firebase:firebase-messaging'
+    implementation("com.facebook.react:react-native:+") {
+        exclude group: 'com.facebook.fbjni'
+    }
 
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.0.0")
 
+debugImplementation("com.facebook.flipper:flipper:0.182.0")
+debugImplementation("com.facebook.flipper:flipper-network-plugin:0.182.0") {
+    exclude group:'com.squareup.okhttp3', module:'okhttp'
+}
+debugImplementation("com.facebook.flipper:flipper-fresco-plugin:0.182.0")
     if (hermesEnabled.toBoolean()) {
-        implementation("com.facebook.react:hermes-android")
+        implementation("com.facebook.react:hermes-engine:+")
     } else {
         implementation jscFlavor
     }
+
+    // Firebase BoM (Bill of Materials)
+    implementation platform('com.google.firebase:firebase-bom:32.3.1')
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+    implementation 'com.google.firebase:firebase-storage'
+    implementation 'com.google.firebase:firebase-messaging'
+
+    // Vector Icons (make sure you've added it to settings.gradle)
+    implementation project(':react-native-vector-icons')
 }
